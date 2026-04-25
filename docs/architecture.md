@@ -1,10 +1,11 @@
 # Architecture
 
-Phase 1 keeps the system intentionally narrow: a FastAPI backend accepts chat input and forwards the prompt to a local Ollama instance, which runs the coding model on the same machine.
+Phase 2 keeps the system intentionally narrow: a FastAPI backend accepts chat input, can safely inspect a local repository in read-only mode, and forwards prompts to a local Ollama instance running on the same machine.
 
 ```mermaid
 flowchart LR
     U[User / Browser] --> B[FastAPI Agent Backend]
+    B --> R[Read-Only Repo Reader]
     B --> O[Ollama]
     O --> M[Local Coding Model]
 ```

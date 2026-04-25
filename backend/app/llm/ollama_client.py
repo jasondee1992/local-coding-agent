@@ -1,7 +1,7 @@
 import httpx
 from fastapi import HTTPException, status
 
-from app.config import Settings
+from app.config import Settings, get_settings
 
 
 class OllamaClient:
@@ -46,3 +46,8 @@ class OllamaClient:
             )
 
         return model_response
+
+
+async def ask_ollama(message: str) -> str:
+    client = OllamaClient(get_settings())
+    return await client.generate(message)

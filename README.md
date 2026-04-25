@@ -1,15 +1,16 @@
 # Local Coding Agent
 
-Local Coding Agent is an on-prem AI coding agent project designed to run against a local LLM through Ollama. Phase 1 delivers only the backend foundation: a safe FastAPI service that can send a user message to the local model and return the model response.
+Local Coding Agent is an on-prem AI coding agent project designed to run against a local LLM through Ollama. Phase 2 keeps the backend safe and local-first: it can chat with the model and includes a read-only repository reader for building future coding context.
 
-## Phase 1 scope
+## Phase 2 scope
 
-- FastAPI backend only
+- FastAPI backend
 - `GET /health` for service configuration status
 - `POST /chat` for local model chat
-- No repository reading
+- Read-only repository scanning and safe file reads
 - No file modification
 - No shell execution
+- No git execution
 - No frontend
 
 ## Prerequisites
@@ -71,8 +72,38 @@ Expected shape:
 }
 ```
 
+## Scan a repository
+
+```bash
+curl -X POST http://127.0.0.1:8000/repo/scan \
+  -H "Content-Type: application/json" \
+  -d '{"project_path":"/home/udot/PROJECTS/local-coding-agent","max_files":50}'
+```
+
+## Build a repository summary
+
+```bash
+curl -X POST http://127.0.0.1:8000/repo/summary \
+  -H "Content-Type: application/json" \
+  -d '{"project_path":"/home/udot/PROJECTS/local-coding-agent","max_files":50}'
+```
+
+## Ask a repository question
+
+```bash
+curl -X POST http://127.0.0.1:8000/repo/ask \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_path":"/home/udot/PROJECTS/local-coding-agent",
+    "question":"How is Ollama wired into the backend?",
+    "files":["backend/app/main.py","backend/app/llm/ollama_client.py"]
+  }'
+```
+
 ## Notes
 
 - Ollama must be running locally before calling `/chat`.
+- Ollama must also be running locally before calling `/repo/ask`.
 - The backend reads configuration from `backend/.env`.
-- Phase 2 will add broader agent capabilities, but those are intentionally excluded from this version.
+- Repository utilities only allow approved text and code files, enforce path boundaries, and skip oversized files.
+- File mutation and execution features remain intentionally out of scope.
