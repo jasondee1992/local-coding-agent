@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     app_env: str = Field(default="development", alias="APP_ENV")
     ollama_base_url: str = Field(default="http://localhost:11434", alias="OLLAMA_BASE_URL")
     ollama_model: str = Field(default="qwen2.5-coder:7b", alias="OLLAMA_MODEL")
+    ollama_timeout_seconds: int = Field(default=180, alias="OLLAMA_TIMEOUT_SECONDS")
+    ollama_keep_alive: str = Field(default="10m", alias="OLLAMA_KEEP_ALIVE")
+    ollama_num_predict: int = Field(default=500, alias="OLLAMA_NUM_PREDICT")
+    ollama_temperature: float = Field(default=0.2, alias="OLLAMA_TEMPERATURE")
+    ollama_top_p: float = Field(default=0.9, alias="OLLAMA_TOP_P")
     agent_api_key: str = Field(default="change-me", alias="AGENT_API_KEY")
     max_file_size_kb: int = Field(default=300, alias="MAX_FILE_SIZE_KB")
 

@@ -1,10 +1,16 @@
 from fastapi import FastAPI, HTTPException, status
 
 from app.config import get_settings
-from app.llm.ollama_client import OllamaClient, ask_ollama
+from app.llm.ollama_client import (
+    OllamaClient,
+    ask_ollama,
+    list_ollama_models,
+    warm_up_ollama,
+)
 from app.repo.context_builder import build_context_from_files, build_repo_overview
 from app.repo.repo_reader import RepoReaderError, scan_repo
 from app.schemas.chat import ChatRequest, ChatResponse
+from app.schemas.models import ModelInfo, ModelsResponse, SettingsResponse, WarmupResponse
 from app.schemas.repo import (
     RepoAskRequest,
     RepoAskResponse,
@@ -67,6 +73,48 @@ def _select_context_files(request: RepoAskRequest) -> list[str]:
     return selected_files
 
 
+@app.get("/settings", response_model=SettingsResponse)
+async def app_settings() -> SettingsResponse:
+    return SettingsResponse(
+        app_name=settings.app_name,
+        app_env=settings.app_env,
+        ollama_base_url=settings.ollama_base_url,
+        ollama_model=settings.ollama_model,
+        ollama_timeout_seconds=settings.ollama_timeout_seconds,
+        ollama_keep_alive=settings.ollama_keep_alive,
+        ollama_num_predict=settings.ollama_num_predict,
+        ollama_temperature=settings.ollama_temperature,
+        ollama_top_p=settings.ollama_top_p,
+        max_file_size_kb=settings.max_file_size_kb,
+    )
+
+
+@app.get("/models", response_model=ModelsResponse)
+async def models() -> ModelsResponse:
+    raw_models = await list_ollama_models()
+    return ModelsResponse(
+        models=[
+            ModelInfo(
+                name=str(model.get("name", "")),
+                modified_at=(
+                    str(model.get("modified_at"))
+                    if model.get("modified_at") is not None
+                    else None
+                ),
+                size=model.get("size") if isinstance(model.get("size"), int) else None,
+            )
+            for model in raw_models
+            if model.get("name")
+        ]
+    )
+
+
+@app.post("/warmup", response_model=WarmupResponse)
+async def warmup() -> WarmupResponse:
+    response = await warm_up_ollama()
+    return WarmupResponse(response=response)
+
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {
@@ -127,9 +175,12 @@ async def repo_ask(payload: RepoAskRequest) -> RepoAskResponse:
 
     prompt = (
         "You are a read-only coding assistant. "
+        "Be concise by default. "
+        "Use bullets only when useful. "
+        "Do not repeat the whole file content. "
         "Answer based only on the provided repository context. "
         "Do not claim that you edited files. "
-        "If context is insufficient, say what files are needed.\n\n"
+        "If context is insufficient, say exactly which files are needed.\n\n"
         f"Question:\n{payload.question}\n\n"
         f"{context}"
     )

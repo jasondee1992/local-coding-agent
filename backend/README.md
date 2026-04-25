@@ -1,6 +1,6 @@
 # Backend
 
-This backend provides the current safe local backend for the Local Coding Agent: a FastAPI service that proxies chat requests to a local Ollama model and includes read-only repository inspection utilities for future agent context building.
+This backend provides the current safe local backend for the Local Coding Agent: a FastAPI service that proxies chat requests to a local Ollama model, includes read-only repository inspection utilities, and exposes operational endpoints for inspecting config, listing installed models, and warming up the local model.
 
 ## Requirements
 
@@ -18,14 +18,19 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
+Lower `OLLAMA_NUM_PREDICT` in `.env` if you want shorter and faster local responses.
+
 ## Run
 
 ```bash
 cd backend
+source .venv/bin/activate
 uvicorn app.main:app --reload
 ```
 
 The API will listen on `http://127.0.0.1:8000` by default.
+
+The first LLM-backed request can be slower because Ollama may need to load the configured model. `POST /warmup` is useful before interactive testing.
 
 ## Quick checks
 
@@ -33,6 +38,24 @@ Health:
 
 ```bash
 curl http://127.0.0.1:8000/health
+```
+
+Settings:
+
+```bash
+curl http://127.0.0.1:8000/settings
+```
+
+Models:
+
+```bash
+curl http://127.0.0.1:8000/models
+```
+
+Warmup:
+
+```bash
+curl -X POST http://127.0.0.1:8000/warmup
 ```
 
 Chat:
