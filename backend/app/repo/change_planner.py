@@ -233,6 +233,9 @@ async def plan_change(project_path: str, task: str, files: list[str]) -> dict:
         elif updated is not None:
             generated_diff = _generate_unified_diff(original, updated, proposal["target_file"])
 
+    if not generated_diff:
+        warnings.append("Generated diff is empty.")
+
     safety_notes = list(DEFAULT_SAFETY_NOTES)
     if warnings:
         safety_notes.append("This proposal has warnings and should not be applied until reviewed.")

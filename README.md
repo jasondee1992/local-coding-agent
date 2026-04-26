@@ -137,6 +137,32 @@ curl -X POST http://127.0.0.1:8000/repo/propose \
   }'
 ```
 
+## Plan and optionally save a change proposal
+
+```bash
+curl -X POST http://127.0.0.1:8000/repo/plan-change \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_path":"/home/udot/PROJECTS/local-coding-agent",
+    "task":"Add a simple /version endpoint after health that returns a plain dictionary using existing settings values.",
+    "files":["backend/app/main.py"],
+    "save_proposal":true,
+    "proposal_name":"version-endpoint"
+  }'
+```
+
+## List saved proposals
+
+```bash
+curl http://127.0.0.1:8000/repo/proposals
+```
+
+## Read one saved proposal
+
+```bash
+curl http://127.0.0.1:8000/repo/proposals/<proposal_id>
+```
+
 ## Notes
 
 - Ollama must be running locally before calling `/chat`.
@@ -150,5 +176,6 @@ curl -X POST http://127.0.0.1:8000/repo/propose \
 - `/repo/propose` returns text only and does not apply or write any patch.
 - `/repo/propose` may also return proposal warnings when a suggested patch looks incomplete or suspicious.
 - The proposal validator checks for incomplete imports, suspicious added command lines, endpoint tasks that do not appear to add the requested route, explicit constraints such as `do not use response_model` or `plain dictionary only`, and some unnecessary imports or client instantiations.
+- `/repo/plan-change` can optionally save proposal JSON and patch files under the local `proposals/` directory without modifying the target project files.
 - Proposal warnings are advisory only and do not mean any files were changed.
 - File mutation and execution features remain intentionally out of scope.

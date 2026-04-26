@@ -12,3 +12,4 @@ logs/
 workspace/*
 !workspace/.gitkeep
 backend/venv
+proposals/

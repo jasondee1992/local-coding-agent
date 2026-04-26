@@ -119,4 +119,27 @@ curl -X POST http://127.0.0.1:8000/repo/propose \
   }'
 ```
 
+Plan and save:
+
+```bash
+curl -X POST http://127.0.0.1:8000/repo/plan-change \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_path":"/home/udot/PROJECTS/local-coding-agent",
+    "task":"Add a simple /version endpoint after health that returns a plain dictionary using existing settings values.",
+    "files":["backend/app/main.py"],
+    "save_proposal":true,
+    "proposal_name":"version-endpoint"
+  }'
+```
+
+Saved proposals:
+
+```bash
+curl http://127.0.0.1:8000/repo/proposals
+curl http://127.0.0.1:8000/repo/proposals/<proposal_id>
+```
+
 `/repo/propose` is read-only. It returns an explanation, a proposed unified diff, the files used as context, safety notes, and may include warnings when a suggested patch looks incomplete or suspicious. The proposal validator checks for incomplete imports, suspicious added command lines, endpoint tasks that do not appear to add the requested route, explicit constraints such as `do not use response_model` or `plain dictionary only`, and some unnecessary imports or client instantiations. These warnings are advisory only and do not mean any files were changed or applied.
+
+`/repo/plan-change` is also read-only. It returns a planner-generated insertion plan plus a Python-generated unified diff, and it can optionally save the resulting proposal to the local `proposals/` directory as a JSON record and `.patch` file.

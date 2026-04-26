@@ -10,6 +10,7 @@ from app.llm.ollama_client import (
 from app.repo.change_planner import plan_change
 from app.repo.context_builder import build_context_from_files, build_repo_overview
 from app.repo.patch_proposer import propose_patch
+from app.repo.proposal_store import list_proposals, load_proposal, save_proposal
 from app.repo.repo_reader import RepoReaderError, scan_repo
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.schemas.models import ModelInfo, ModelsResponse, SettingsResponse, WarmupResponse
@@ -223,6 +224,26 @@ async def repo_plan_change(payload: PlanChangeRequest) -> PlanChangeResponse:
     except RepoReaderError as exc:
         raise _repo_bad_request(str(exc)) from exc
 
+    if payload.save_proposal:
+        if not proposal["generated_diff"]:
+            proposal["warnings"].append(
+                "Generated diff is empty, but the proposal was saved because save_proposal=true."
+            )
+            warning_note = "This proposal has warnings and should not be applied until reviewed."
+            if warning_note not in proposal["safety_notes"]:
+                proposal["safety_notes"].append(warning_note)
+        saved = save_proposal(
+            project_path=payload.project_path,
+            task=payload.task,
+            result=proposal,
+            proposal_name=payload.proposal_name,
+        )
+        proposal["proposal_id"] = saved["proposal_id"]
+        proposal["proposal_path"] = saved["proposal_path"]
+    else:
+        proposal["proposal_id"] = None
+        proposal["proposal_path"] = None
+
     return PlanChangeResponse(
         explanation=proposal["explanation"],
         target_file=proposal["target_file"],
@@ -231,6 +252,23 @@ async def repo_plan_change(payload: PlanChangeRequest) -> PlanChangeResponse:
         code=proposal["code"],
         generated_diff=proposal["generated_diff"],
         context_files=proposal["context_files"],
+        proposal_id=proposal["proposal_id"],
+        proposal_path=proposal["proposal_path"],
         warnings=proposal["warnings"],
         safety_notes=proposal["safety_notes"],
     )
+
+
+@app.get("/repo/proposals")
+async def repo_proposals() -> dict[str, list[dict[str, object]]]:
+    return {"proposals": list_proposals()}
+
+
+@app.get("/repo/proposals/{proposal_id}")
+async def repo_proposal_detail(proposal_id: str) -> dict:
+    try:
+        return load_proposal(proposal_id)
+    except ValueError as exc:
+        raise _repo_bad_request(str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proposal not found.") from exc

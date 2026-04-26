@@ -13,6 +13,8 @@ class PlanChangeRequest(BaseModel):
     task: str
     files: list[str]
     max_files: int = Field(default=10, ge=1, le=20)
+    save_proposal: bool = False
+    proposal_name: str | None = None
 
     @field_validator("project_path")
     @classmethod
@@ -47,5 +49,7 @@ class PlanChangeResponse(BaseModel):
     code: str
     generated_diff: str
     context_files: list[str]
+    proposal_id: str | None = None
+    proposal_path: str | None = None
     warnings: list[str] = Field(default_factory=list)
     safety_notes: list[str] = Field(default_factory=list)
