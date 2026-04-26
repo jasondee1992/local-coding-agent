@@ -150,8 +150,24 @@ curl -X POST http://localhost:8000/repo/proposals/<proposal_id>/apply \
 
 This writes to the target file, requires explicit `confirm_apply=true`, creates a backup under `proposals/backups/`, and refuses proposals with warnings unless `allow_warnings=true`.
 
+Run basic validation:
+
+```bash
+curl http://localhost:8000/repo/validation/basic
+```
+
+Validate a saved proposal:
+
+```bash
+curl -X POST http://localhost:8000/repo/proposals/<proposal_id>/validate \
+  -H "Content-Type: application/json" \
+  -d '{"include_version":true,"include_settings":true,"include_models":false}'
+```
+
 `/repo/propose` is read-only. It returns an explanation, a proposed unified diff, the files used as context, safety notes, and may include warnings when a suggested patch looks incomplete or suspicious. The proposal validator checks for incomplete imports, suspicious added command lines, endpoint tasks that do not appear to add the requested route, explicit constraints such as `do not use response_model` or `plain dictionary only`, and some unnecessary imports or client instantiations. These warnings are advisory only and do not mean any files were changed or applied.
 
 `/repo/plan-change` is read-only. It returns a planner-generated insertion plan plus a Python-generated unified diff, and it can optionally save the resulting proposal to the local `proposals/` directory as a JSON record and `.patch` file.
 
 `/repo/proposals/{proposal_id}/apply` is intentionally conservative. It only applies a saved single-file diff to the saved `target_file`, requires `confirm_apply=true`, creates a backup before writing, rejects path traversal, blocks warnings unless `allow_warnings=true`, and refuses to write when the current file no longer matches the expected pre-apply context.
+
+`/repo/validation/basic` and `/repo/proposals/{proposal_id}/validate` only validate a fixed allowlist of local endpoints. They do not accept arbitrary URLs, do not execute shell or git commands, and do not run arbitrary test suites.

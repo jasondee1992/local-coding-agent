@@ -5,6 +5,11 @@ from app.schemas.models import ModelInfo, ModelsResponse, SettingsResponse, Warm
 from app.schemas.plan_change import PlanChangeRequest, PlanChangeResponse
 from app.schemas.proposal_apply import ProposalApplyRequest, ProposalApplyResponse
 from app.schemas.propose import PatchProposeRequest, PatchProposeResponse
+from app.schemas.validation import (
+    ProposalValidationRequest,
+    ValidationCheckResult,
+    ValidationResponse,
+)
 from app.schemas.repo import (
     RepoAskRequest,
     RepoAskResponse,
@@ -24,6 +29,7 @@ __all__ = [
     "PlanChangeResponse",
     "ProposalApplyRequest",
     "ProposalApplyResponse",
+    "ProposalValidationRequest",
     "PatchProposeRequest",
     "PatchProposeResponse",
     "RepoAskRequest",
@@ -34,5 +40,7 @@ __all__ = [
     "RepoSummaryRequest",
     "RepoSummaryResponse",
     "SettingsResponse",
+    "ValidationCheckResult",
+    "ValidationResponse",
     "WarmupResponse",
 ]

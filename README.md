@@ -174,6 +174,20 @@ curl -X POST http://localhost:8000/repo/proposals/<proposal_id>/apply \
 
 This writes to the proposal target file. It requires explicit `confirm_apply=true`, creates a backup under `proposals/backups/`, and refuses proposals with warnings unless `allow_warnings=true`.
 
+## Run basic validation
+
+```bash
+curl http://localhost:8000/repo/validation/basic
+```
+
+## Validate a saved proposal against known local endpoints
+
+```bash
+curl -X POST http://localhost:8000/repo/proposals/<proposal_id>/validate \
+  -H "Content-Type: application/json" \
+  -d '{"include_version":true,"include_settings":true,"include_models":false}'
+```
+
 ## Notes
 
 - Ollama must be running locally before calling `/chat`.
@@ -190,3 +204,4 @@ This writes to the proposal target file. It requires explicit `confirm_apply=tru
 - `/repo/plan-change` can optionally save proposal JSON and patch files under the local `proposals/` directory without modifying the target project files.
 - `/repo/proposals/{proposal_id}/apply` is intentionally conservative: it requires `confirm_apply=true`, only supports a single saved target file, creates a backup before writing, rejects warnings unless explicitly allowed, and refuses to apply when the current file no longer matches the expected pre-apply context.
 - Proposal warnings are advisory until apply time, where they become blocking unless `allow_warnings=true`.
+- `/repo/validation/basic` and `/repo/proposals/{proposal_id}/validate` only call a fixed allowlist of local endpoints: `/health`, `/version`, `/settings`, and optionally `/models`.

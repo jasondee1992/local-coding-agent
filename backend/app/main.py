@@ -13,6 +13,7 @@ from app.repo.patch_proposer import propose_patch
 from app.repo.proposal_apply import apply_saved_proposal
 from app.repo.proposal_store import list_proposals, load_proposal, save_proposal
 from app.repo.repo_reader import RepoReaderError, scan_repo
+from app.repo.validation_runner import run_basic_validation
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.schemas.models import ModelInfo, ModelsResponse, SettingsResponse, WarmupResponse
 from app.schemas.plan_change import PlanChangeRequest, PlanChangeResponse
@@ -27,6 +28,7 @@ from app.schemas.repo import (
     RepoSummaryRequest,
     RepoSummaryResponse,
 )
+from app.schemas.validation import ProposalValidationRequest, ValidationResponse
 
 settings = get_settings()
 app = FastAPI(title=settings.app_name)
@@ -290,3 +292,29 @@ async def apply_proposal(
 ) -> ProposalApplyResponse:
     result = apply_saved_proposal(proposal_id, payload)
     return ProposalApplyResponse(**result)
+
+
+@app.get("/repo/validation/basic", response_model=ValidationResponse)
+async def repo_validation_basic() -> ValidationResponse:
+    result = await run_basic_validation()
+    return ValidationResponse(**result)
+
+
+@app.post("/repo/proposals/{proposal_id}/validate", response_model=ValidationResponse)
+async def validate_proposal(
+    proposal_id: str,
+    payload: ProposalValidationRequest,
+) -> ValidationResponse:
+    try:
+        load_proposal(proposal_id)
+    except ValueError as exc:
+        raise _repo_bad_request(str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proposal not found.") from exc
+
+    result = await run_basic_validation(
+        include_version=payload.include_version,
+        include_settings=payload.include_settings,
+        include_models=payload.include_models,
+    )
+    return ValidationResponse(**result)
