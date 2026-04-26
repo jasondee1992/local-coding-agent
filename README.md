@@ -125,13 +125,30 @@ curl -X POST http://127.0.0.1:8000/repo/ask \
   }'
 ```
 
+## Propose a patch without applying it
+
+```bash
+curl -X POST http://127.0.0.1:8000/repo/propose \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_path":"/home/udot/PROJECTS/local-coding-agent",
+    "task":"Add a short docstring to the Ollama client helper functions.",
+    "files":["backend/app/llm/ollama_client.py"]
+  }'
+```
+
 ## Notes
 
 - Ollama must be running locally before calling `/chat`.
 - Ollama must be running locally before calling `/models` or `/warmup`.
 - Ollama must also be running locally before calling `/repo/ask`.
+- Ollama must also be running locally before calling `/repo/propose`.
 - The backend reads configuration from `backend/.env`.
 - Repository utilities only allow approved text and code files, enforce path boundaries, and skip oversized files.
 - `OLLAMA_KEEP_ALIVE` helps keep the model loaded between requests.
 - `OLLAMA_NUM_PREDICT` is the main knob for shortening responses and improving local latency.
+- `/repo/propose` returns text only and does not apply or write any patch.
+- `/repo/propose` may also return proposal warnings when a suggested patch looks incomplete or suspicious.
+- The proposal validator checks for incomplete imports, suspicious added command lines, endpoint tasks that do not appear to add the requested route, explicit constraints such as `do not use response_model` or `plain dictionary only`, and some unnecessary imports or client instantiations.
+- Proposal warnings are advisory only and do not mean any files were changed.
 - File mutation and execution features remain intentionally out of scope.

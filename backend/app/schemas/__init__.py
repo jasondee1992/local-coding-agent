@@ -2,6 +2,8 @@
 
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.schemas.models import ModelInfo, ModelsResponse, SettingsResponse, WarmupResponse
+from app.schemas.plan_change import PlanChangeRequest, PlanChangeResponse
+from app.schemas.propose import PatchProposeRequest, PatchProposeResponse
 from app.schemas.repo import (
     RepoAskRequest,
     RepoAskResponse,
@@ -17,6 +19,10 @@ __all__ = [
     "ChatResponse",
     "ModelInfo",
     "ModelsResponse",
+    "PlanChangeRequest",
+    "PlanChangeResponse",
+    "PatchProposeRequest",
+    "PatchProposeResponse",
     "RepoAskRequest",
     "RepoAskResponse",
     "RepoFile",

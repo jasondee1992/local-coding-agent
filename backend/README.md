@@ -106,3 +106,17 @@ curl -X POST http://127.0.0.1:8000/repo/ask \
     "files":["backend/app/repo/repo_reader.py","backend/app/repo/context_builder.py"]
   }'
 ```
+
+Propose:
+
+```bash
+curl -X POST http://127.0.0.1:8000/repo/propose \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_path":"/home/udot/PROJECTS/local-coding-agent",
+    "task":"Propose a minimal refactor for the repo reader error messages.",
+    "files":["backend/app/repo/repo_reader.py"]
+  }'
+```
+
+`/repo/propose` is read-only. It returns an explanation, a proposed unified diff, the files used as context, safety notes, and may include warnings when a suggested patch looks incomplete or suspicious. The proposal validator checks for incomplete imports, suspicious added command lines, endpoint tasks that do not appear to add the requested route, explicit constraints such as `do not use response_model` or `plain dictionary only`, and some unnecessary imports or client instantiations. These warnings are advisory only and do not mean any files were changed or applied.

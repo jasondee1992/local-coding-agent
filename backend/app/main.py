@@ -7,10 +7,14 @@ from app.llm.ollama_client import (
     list_ollama_models,
     warm_up_ollama,
 )
+from app.repo.change_planner import plan_change
 from app.repo.context_builder import build_context_from_files, build_repo_overview
+from app.repo.patch_proposer import propose_patch
 from app.repo.repo_reader import RepoReaderError, scan_repo
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.schemas.models import ModelInfo, ModelsResponse, SettingsResponse, WarmupResponse
+from app.schemas.plan_change import PlanChangeRequest, PlanChangeResponse
+from app.schemas.propose import PatchProposeRequest, PatchProposeResponse
 from app.schemas.repo import (
     RepoAskRequest,
     RepoAskResponse,
@@ -186,3 +190,47 @@ async def repo_ask(payload: RepoAskRequest) -> RepoAskResponse:
     )
     response = await ask_ollama(prompt)
     return RepoAskResponse(response=response, context_files=context_files)
+
+
+@app.post("/repo/propose", response_model=PatchProposeResponse)
+async def repo_propose(payload: PatchProposeRequest) -> PatchProposeResponse:
+    try:
+        proposal = await propose_patch(
+            project_path=payload.project_path,
+            task=payload.task,
+            files=payload.files,
+        )
+    except RepoReaderError as exc:
+        raise _repo_bad_request(str(exc)) from exc
+
+    return PatchProposeResponse(
+        explanation=proposal["explanation"],
+        diff=proposal["diff"],
+        context_files=proposal["context_files"],
+        safety_notes=proposal["safety_notes"],
+        warnings=proposal["warnings"],
+    )
+
+
+@app.post("/repo/plan-change", response_model=PlanChangeResponse)
+async def repo_plan_change(payload: PlanChangeRequest) -> PlanChangeResponse:
+    try:
+        proposal = await plan_change(
+            project_path=payload.project_path,
+            task=payload.task,
+            files=payload.files,
+        )
+    except RepoReaderError as exc:
+        raise _repo_bad_request(str(exc)) from exc
+
+    return PlanChangeResponse(
+        explanation=proposal["explanation"],
+        target_file=proposal["target_file"],
+        operation=proposal["operation"],
+        anchor=proposal["anchor"],
+        code=proposal["code"],
+        generated_diff=proposal["generated_diff"],
+        context_files=proposal["context_files"],
+        warnings=proposal["warnings"],
+        safety_notes=proposal["safety_notes"],
+    )
