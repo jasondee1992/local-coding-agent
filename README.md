@@ -1,8 +1,8 @@
 # Local Coding Agent
 
-Local Coding Agent is an on-prem AI coding agent project designed to run against a local LLM through Ollama. Phase 2.5 keeps the backend safe and local-first: it can chat with the model, inspect a repository in read-only mode, and exposes a few operational endpoints to make local Ollama use faster and easier to debug.
+Local Coding Agent is an on-prem AI coding agent project designed to run against a local LLM through Ollama. The current backend stays local-first: it can chat with the model, inspect a repository safely, save change proposals, and conservatively apply a reviewed saved proposal without invoking shell or git.
 
-## Phase 2.5 scope
+## Current scope
 
 - FastAPI backend
 - `GET /health` for service configuration status
@@ -11,7 +11,8 @@ Local Coding Agent is an on-prem AI coding agent project designed to run against
 - `POST /warmup` to warm the configured model
 - `POST /chat` for local model chat
 - Read-only repository scanning and safe file reads
-- No file modification
+- Saved proposal generation under `proposals/`
+- Controlled single-file proposal apply with required confirmation and backups
 - No shell execution
 - No git execution
 - No frontend
@@ -163,6 +164,16 @@ curl http://127.0.0.1:8000/repo/proposals
 curl http://127.0.0.1:8000/repo/proposals/<proposal_id>
 ```
 
+## Apply one saved proposal
+
+```bash
+curl -X POST http://localhost:8000/repo/proposals/<proposal_id>/apply \
+  -H "Content-Type: application/json" \
+  -d '{"confirm_apply":true,"allow_warnings":false,"create_backup":true}'
+```
+
+This writes to the proposal target file. It requires explicit `confirm_apply=true`, creates a backup under `proposals/backups/`, and refuses proposals with warnings unless `allow_warnings=true`.
+
 ## Notes
 
 - Ollama must be running locally before calling `/chat`.
@@ -177,5 +188,5 @@ curl http://127.0.0.1:8000/repo/proposals/<proposal_id>
 - `/repo/propose` may also return proposal warnings when a suggested patch looks incomplete or suspicious.
 - The proposal validator checks for incomplete imports, suspicious added command lines, endpoint tasks that do not appear to add the requested route, explicit constraints such as `do not use response_model` or `plain dictionary only`, and some unnecessary imports or client instantiations.
 - `/repo/plan-change` can optionally save proposal JSON and patch files under the local `proposals/` directory without modifying the target project files.
-- Proposal warnings are advisory only and do not mean any files were changed.
-- File mutation and execution features remain intentionally out of scope.
+- `/repo/proposals/{proposal_id}/apply` is intentionally conservative: it requires `confirm_apply=true`, only supports a single saved target file, creates a backup before writing, rejects warnings unless explicitly allowed, and refuses to apply when the current file no longer matches the expected pre-apply context.
+- Proposal warnings are advisory until apply time, where they become blocking unless `allow_warnings=true`.

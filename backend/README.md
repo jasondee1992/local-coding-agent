@@ -1,6 +1,6 @@
 # Backend
 
-This backend provides the current safe local backend for the Local Coding Agent: a FastAPI service that proxies chat requests to a local Ollama model, includes read-only repository inspection utilities, and exposes operational endpoints for inspecting config, listing installed models, and warming up the local model.
+This backend provides the current safe local backend for the Local Coding Agent: a FastAPI service that proxies chat requests to a local Ollama model, includes repository inspection utilities, saves proposal artifacts locally, and can conservatively apply a reviewed saved proposal without invoking shell or git.
 
 ## Requirements
 
@@ -77,7 +77,7 @@ The backend also includes internal Phase 2 utilities under `app.repo` for:
 - skipping ignored directories and oversized files
 - building markdown summaries and file-context bundles
 
-These utilities are read-only and do not perform file mutation, shell execution, or git commands.
+The repository utilities do not perform shell execution or git commands. Proposal planning is read-only. Proposal apply performs a single validated file write only after explicit confirmation and backup creation.
 
 Scan:
 
@@ -140,6 +140,18 @@ curl http://127.0.0.1:8000/repo/proposals
 curl http://127.0.0.1:8000/repo/proposals/<proposal_id>
 ```
 
+Apply a saved proposal:
+
+```bash
+curl -X POST http://localhost:8000/repo/proposals/<proposal_id>/apply \
+  -H "Content-Type: application/json" \
+  -d '{"confirm_apply":true,"allow_warnings":false,"create_backup":true}'
+```
+
+This writes to the target file, requires explicit `confirm_apply=true`, creates a backup under `proposals/backups/`, and refuses proposals with warnings unless `allow_warnings=true`.
+
 `/repo/propose` is read-only. It returns an explanation, a proposed unified diff, the files used as context, safety notes, and may include warnings when a suggested patch looks incomplete or suspicious. The proposal validator checks for incomplete imports, suspicious added command lines, endpoint tasks that do not appear to add the requested route, explicit constraints such as `do not use response_model` or `plain dictionary only`, and some unnecessary imports or client instantiations. These warnings are advisory only and do not mean any files were changed or applied.
 
-`/repo/plan-change` is also read-only. It returns a planner-generated insertion plan plus a Python-generated unified diff, and it can optionally save the resulting proposal to the local `proposals/` directory as a JSON record and `.patch` file.
+`/repo/plan-change` is read-only. It returns a planner-generated insertion plan plus a Python-generated unified diff, and it can optionally save the resulting proposal to the local `proposals/` directory as a JSON record and `.patch` file.
+
+`/repo/proposals/{proposal_id}/apply` is intentionally conservative. It only applies a saved single-file diff to the saved `target_file`, requires `confirm_apply=true`, creates a backup before writing, rejects path traversal, blocks warnings unless `allow_warnings=true`, and refuses to write when the current file no longer matches the expected pre-apply context.

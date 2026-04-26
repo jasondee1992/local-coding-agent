@@ -10,11 +10,13 @@ from app.llm.ollama_client import (
 from app.repo.change_planner import plan_change
 from app.repo.context_builder import build_context_from_files, build_repo_overview
 from app.repo.patch_proposer import propose_patch
+from app.repo.proposal_apply import apply_saved_proposal
 from app.repo.proposal_store import list_proposals, load_proposal, save_proposal
 from app.repo.repo_reader import RepoReaderError, scan_repo
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.schemas.models import ModelInfo, ModelsResponse, SettingsResponse, WarmupResponse
 from app.schemas.plan_change import PlanChangeRequest, PlanChangeResponse
+from app.schemas.proposal_apply import ProposalApplyRequest, ProposalApplyResponse
 from app.schemas.propose import PatchProposeRequest, PatchProposeResponse
 from app.schemas.repo import (
     RepoAskRequest,
@@ -129,6 +131,13 @@ async def health() -> dict[str, str]:
         "model": settings.ollama_model,
     }
 
+@app.get("/version")
+async def version() -> dict[str, str]:
+    return {
+        "app_name": settings.app_name,
+        "environment": settings.app_env,
+        "ollama_model": settings.ollama_model,
+    }
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(payload: ChatRequest) -> ChatResponse:
@@ -272,3 +281,12 @@ async def repo_proposal_detail(proposal_id: str) -> dict:
         raise _repo_bad_request(str(exc)) from exc
     except FileNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proposal not found.") from exc
+
+
+@app.post("/repo/proposals/{proposal_id}/apply", response_model=ProposalApplyResponse)
+async def apply_proposal(
+    proposal_id: str,
+    payload: ProposalApplyRequest,
+) -> ProposalApplyResponse:
+    result = apply_saved_proposal(proposal_id, payload)
+    return ProposalApplyResponse(**result)
